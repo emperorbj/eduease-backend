@@ -1,0 +1,14 @@
+import "./School.model.js";
+import "./User.model.js";
+import "./Session.model.js";
+import "./Term.model.js";
+import "./AcademicClass.model.js";
+import "./Subject.model.js";
+import "./Student.model.js";
+import "./TeachingAssignment.model.js";
+import "./SubjectResult.model.js";
+import "./ClassTermAggregate.model.js";
+import "./PromotionDecision.model.js";
+import "./TermLock.model.js";
+import "./Material.model.js";
+import "./EmailLog.model.js";
