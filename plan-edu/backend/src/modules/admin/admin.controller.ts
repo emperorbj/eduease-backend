@@ -6,12 +6,15 @@ import {
   createClassSchema,
   createSessionSchema,
   createSubjectSchema,
+  classCoverageQuerySchema,
   createTeachingAssignmentSchema,
   createTermSchema,
+  unassignTeachingAssignmentSchema,
   updateClassSchema,
   updateSessionSchema,
   updateSubjectSchema,
   updateTermSchema,
+  updateUserSchema,
 } from "./admin.schema.js";
 
 function schoolIdOrThrow(req: Request): string {
@@ -35,6 +38,56 @@ function badRequestFromZod(err: ZodError): never {
 export async function listSessions(req: Request, res: Response): Promise<void> {
   const rows = await adminService.listSessions(schoolIdOrThrow(req));
   res.json({ sessions: rows });
+}
+
+export async function listUsers(req: Request, res: Response): Promise<void> {
+  const rows = await adminService.listUsers(schoolIdOrThrow(req));
+  res.json({ users: rows });
+}
+
+export async function getUser(req: Request, res: Response): Promise<void> {
+  const row = await adminService.getUserById(
+    schoolIdOrThrow(req),
+    routeParamString(req.params.id, "user id")
+  );
+  res.json({ user: row });
+}
+
+export async function updateUser(req: Request, res: Response): Promise<void> {
+  try {
+    const input = updateUserSchema.parse(req.body);
+    const row = await adminService.updateUser(
+      schoolIdOrThrow(req),
+      routeParamString(req.params.id, "user id"),
+      input
+    );
+    res.json({ user: row });
+  } catch (e) {
+    if (e instanceof ZodError) badRequestFromZod(e);
+    throw e;
+  }
+}
+
+export async function deleteUser(req: Request, res: Response): Promise<void> {
+  await adminService.deleteUser(
+    schoolIdOrThrow(req),
+    routeParamString(req.params.id, "user id")
+  );
+  res.status(204).send();
+}
+
+export async function classCoverage(req: Request, res: Response): Promise<void> {
+  try {
+    const query = classCoverageQuerySchema.parse(req.query);
+    const row = await adminService.getClassSubjectTeacherCoverage(
+      schoolIdOrThrow(req),
+      query
+    );
+    res.json(row);
+  } catch (e) {
+    if (e instanceof ZodError) badRequestFromZod(e);
+    throw e;
+  }
 }
 
 export async function createSession(req: Request, res: Response): Promise<void> {
@@ -61,6 +114,14 @@ export async function updateSession(req: Request, res: Response): Promise<void> 
     if (e instanceof ZodError) badRequestFromZod(e);
     throw e;
   }
+}
+
+export async function deleteSession(req: Request, res: Response): Promise<void> {
+  await adminService.deleteSession(
+    schoolIdOrThrow(req),
+    routeParamString(req.params.id, "session id")
+  );
+  res.status(204).send();
 }
 
 export async function listTerms(req: Request, res: Response): Promise<void> {
@@ -128,6 +189,14 @@ export async function updateClass(req: Request, res: Response): Promise<void> {
   }
 }
 
+export async function deleteClass(req: Request, res: Response): Promise<void> {
+  await adminService.deleteClass(
+    schoolIdOrThrow(req),
+    routeParamString(req.params.id, "class id")
+  );
+  res.status(204).send();
+}
+
 export async function listSubjects(req: Request, res: Response): Promise<void> {
   const rows = await adminService.listSubjects(schoolIdOrThrow(req));
   res.json({ subjects: rows });
@@ -159,6 +228,14 @@ export async function updateSubject(req: Request, res: Response): Promise<void> 
   }
 }
 
+export async function deleteSubject(req: Request, res: Response): Promise<void> {
+  await adminService.deleteSubject(
+    schoolIdOrThrow(req),
+    routeParamString(req.params.id, "subject id")
+  );
+  res.status(204).send();
+}
+
 export async function createTeachingAssignment(
   req: Request,
   res: Response
@@ -170,6 +247,23 @@ export async function createTeachingAssignment(
       input
     );
     res.status(201).json({ assignment: row });
+  } catch (e) {
+    if (e instanceof ZodError) badRequestFromZod(e);
+    throw e;
+  }
+}
+
+export async function unassignTeachingAssignment(
+  req: Request,
+  res: Response
+): Promise<void> {
+  try {
+    const input = unassignTeachingAssignmentSchema.parse(req.body);
+    const row = await adminService.unassignTeachingAssignment(
+      schoolIdOrThrow(req),
+      input
+    );
+    res.json({ assignment: row });
   } catch (e) {
     if (e instanceof ZodError) badRequestFromZod(e);
     throw e;

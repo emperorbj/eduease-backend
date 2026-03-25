@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { USER_ROLES } from "../../types/roles.js";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
 
@@ -57,6 +58,22 @@ export const createTeachingAssignmentSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
+export const unassignTeachingAssignmentSchema = z.object({
+  teacherUserId: objectId,
+  classId: objectId,
+  subjectId: objectId,
+  termId: objectId,
+});
+
+export const updateUserSchema = z.object({
+  email: z.string().email().optional(),
+  firstName: z.string().trim().min(1).max(100).optional(),
+  lastName: z.string().trim().min(1).max(100).optional(),
+  role: z.enum(USER_ROLES).optional(),
+  classTeacherClassId: objectId.nullable().optional(),
+  isActive: z.boolean().optional(),
+});
+
 export type CreateSessionInput = z.infer<typeof createSessionSchema>;
 export type UpdateSessionInput = z.infer<typeof updateSessionSchema>;
 export type CreateTermInput = z.infer<typeof createTermSchema>;
@@ -68,3 +85,14 @@ export type UpdateSubjectInput = z.infer<typeof updateSubjectSchema>;
 export type CreateTeachingAssignmentInput = z.infer<
   typeof createTeachingAssignmentSchema
 >;
+export type UnassignTeachingAssignmentInput = z.infer<
+  typeof unassignTeachingAssignmentSchema
+>;
+export type UpdateUserInput = z.infer<typeof updateUserSchema>;
+
+export const classCoverageQuerySchema = z.object({
+  classId: objectId,
+  termId: objectId.optional(),
+});
+
+export type ClassCoverageQuery = z.infer<typeof classCoverageQuerySchema>;

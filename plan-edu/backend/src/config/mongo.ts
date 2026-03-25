@@ -1,12 +1,17 @@
 import mongoose from "mongoose";
+import { logger } from "../utils/logger.js";
 import { env } from "./env.js";
 
 export async function connectMongo(): Promise<void> {
   if (!env.MONGODB_URI) {
-    console.warn("[mongo] MONGODB_URI not set — skipping connection");
+    logger.warn("[mongo] MONGODB_URI not set — skipping connection");
     return;
   }
   await mongoose.connect(env.MONGODB_URI);
+  const { host, name } = mongoose.connection;
+  logger.info(
+    `[mongo] connected (${host ?? "unknown host"} / db: ${name ?? "unknown"})`
+  );
 }
 
 export async function disconnectMongo(): Promise<void> {

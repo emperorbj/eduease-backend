@@ -4,8 +4,10 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import rateLimit from "express-rate-limit";
 import { env } from "./config/env.js";
+import { setupSwagger } from "./docs/swaggerSetup.js";
 import { errorHandler } from "./middleware/errorHandler.js";
 import { notFound } from "./middleware/notFound.js";
+import { requestLogger } from "./middleware/requestLogger.js";
 import { healthRouter } from "./modules/health/health.routes.js";
 import { authRouter } from "./modules/auth/auth.routes.js";
 import { adminRouter } from "./modules/admin/admin.routes.js";
@@ -21,7 +23,8 @@ export function createApp() {
   const app = express();
 
   app.disable("x-powered-by");
-  app.use(helmet());
+  // Swagger UI needs inline scripts; tighten CSP at the reverse proxy in production if needed.
+  app.use(helmet({ contentSecurityPolicy: false }));
   app.use(
     cors({
       origin: env.CORS_ORIGIN.split(",").map((s) => s.trim()),
@@ -30,6 +33,7 @@ export function createApp() {
   );
   app.use(express.json({ limit: `${env.MAX_UPLOAD_MB}mb` }));
   app.use(cookieParser());
+  app.use(requestLogger);
 
   const limiter = rateLimit({
     windowMs: 15 * 60 * 1000,
@@ -54,6 +58,8 @@ export function createApp() {
   app.use("/api/v1/principal", principalRouter);
   app.use("/api/v1/materials", materialsRouter);
   app.use("/api/v1/notifications", notificationsRouter);
+
+  setupSwagger(app);
 
   app.use(notFound);
   app.use(errorHandler);

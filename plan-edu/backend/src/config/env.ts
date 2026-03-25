@@ -11,12 +11,17 @@ const envSchema = z.object({
   SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
   MATERIAL_SIGNED_URL_EXPIRES_SEC: z.coerce.number().int().positive().default(3600),
   CORS_ORIGIN: z.string().default("http://localhost:3000"),
+  /** Web app origin (no trailing slash). Login links in emails use this + /login */
+  FRONTEND_URL: z.string().default("http://localhost:3000"),
   MAX_UPLOAD_MB: z.coerce.number().default(10),
   SMTP_HOST: z.string().optional(),
   SMTP_PORT: z.coerce.number().int().positive().optional(),
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
+  /** Base URL shown in Swagger (e.g. https://api.example.com). Defaults to http://localhost:PORT */
+  API_PUBLIC_URL: z.string().optional(),
+  LOG_LEVEL: z.enum(["error", "warn", "info", "debug"]).default("info"),
 });
 
 export type Env = z.infer<typeof envSchema>;

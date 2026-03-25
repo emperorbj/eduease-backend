@@ -44,7 +44,11 @@ export async function register(req: Request, res: Response): Promise<void> {
     throw e;
   }
 
-  const result = await authService.adminCreateUser(req.user.schoolId, input);
+  const result = await authService.adminCreateUser(
+    req.user.schoolId,
+    req.user.id,
+    input
+  );
   res.status(201).json(result);
 }
 
