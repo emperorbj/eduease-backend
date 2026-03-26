@@ -6,6 +6,8 @@ import type {
   ListStudentsQuery,
   UpdateStudentInput,
 } from "./students.schema.js";
+import { User } from "../../models/User.model.js";
+import { SubjectResult } from "../../models/SubjectResult.model.js";
 
 function toObjectId(id: string, name: string): Types.ObjectId {
   if (!Types.ObjectId.isValid(id)) {
@@ -37,12 +39,13 @@ export async function listStudents(schoolId: string, query: ListStudentsQuery) {
 
 export async function createStudent(schoolId: string, input: CreateStudentInput) {
   try {
+    const { loginEmail: _loginEmail, loginPassword: _loginPassword, ...studentFields } = input;
     return await Student.create({
       schoolId: toObjectId(schoolId, "schoolId"),
-      firstName: input.firstName.trim(),
-      lastName: input.lastName.trim(),
-      admissionNumber: input.admissionNumber.trim(),
-      classId: toObjectId(input.classId, "classId"),
+      firstName: studentFields.firstName.trim(),
+      lastName: studentFields.lastName.trim(),
+      admissionNumber: studentFields.admissionNumber.trim(),
+      classId: toObjectId(studentFields.classId, "classId"),
     });
   } catch (e) {
     if (isMongoDuplicateKey(e)) {
@@ -50,6 +53,80 @@ export async function createStudent(schoolId: string, input: CreateStudentInput)
     }
     throw e;
   }
+}
+
+export async function getMyStudentResults(
+  schoolId: string,
+  studentUserId: string,
+  query: { termId: string }
+) {
+  const user = await User.findOne({
+    _id: toObjectId(studentUserId, "user id"),
+    schoolId: toObjectId(schoolId, "schoolId"),
+  }).select("studentId");
+
+  if (!user?.studentId) {
+    throw new AppError(403, "No student record linked to this account");
+  }
+
+  const student = await Student.findOne({
+    _id: toObjectId(String(user.studentId), "studentId"),
+    schoolId: toObjectId(schoolId, "schoolId"),
+  }).select("firstName lastName admissionNumber classId");
+
+  if (!student) {
+    throw new AppError(404, "Student record not found");
+  }
+
+  const results = await SubjectResult.find({
+    schoolId: toObjectId(schoolId, "schoolId"),
+    termId: toObjectId(query.termId, "termId"),
+    classId: toObjectId(student.classId.toString(), "classId"),
+    studentId: toObjectId(student._id.toString(), "studentId"),
+  })
+    .populate("subjectId", "name code")
+    .sort({ "subjectId.code": 1 });
+
+  const subjectResults = results.map((r) => ({
+    subjectId: r.subjectId.toString(),
+    subjectName: (r.subjectId as unknown as { name?: string }).name ?? "",
+    subjectCode: (r.subjectId as unknown as { code?: string }).code ?? "",
+    test1: r.test1,
+    test2: r.test2,
+    exam: r.exam,
+    totalPercent: r.totalPercent,
+    grade: r.grade,
+    remark: r.remark,
+    subjectPassed: r.subjectPassed,
+    locked: r.locked,
+    submittedAt: r.submittedAt,
+  }));
+
+  const subjectCount = subjectResults.length;
+  const totalScore = subjectResults.reduce((sum, r) => sum + r.totalPercent, 0);
+  const passedSubjects = subjectResults.reduce(
+    (sum, r) => sum + (r.subjectPassed ? 1 : 0),
+    0
+  );
+  const average = subjectCount > 0 ? totalScore / subjectCount : 0;
+
+  return {
+    termId: query.termId,
+    classId: student.classId.toString(),
+    student: {
+      firstName: student.firstName,
+      lastName: student.lastName,
+      admissionNumber: student.admissionNumber,
+      studentId: student._id.toString(),
+    },
+    results: subjectResults,
+    aggregate: {
+      subjectCount,
+      passedSubjects,
+      totalScore: Math.round(totalScore),
+      average: Math.round(average * 100) / 100,
+    },
+  };
 }
 
 export async function getStudent(schoolId: string, studentId: string) {
@@ -84,4 +161,15 @@ export async function updateStudent(
     throw new AppError(404, "Student not found");
   }
   return row;
+}
+
+export async function deleteStudent(schoolId: string, studentId: string) {
+  const row = await Student.findOneAndDelete({
+    _id: toObjectId(studentId, "studentId"),
+    schoolId: toObjectId(schoolId, "schoolId"),
+  });
+  if (!row) {
+    throw new AppError(404, "Student not found");
+  }
+  return { deleted: true };
 }

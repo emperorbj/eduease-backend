@@ -8,6 +8,7 @@ import { assertTermUnlocked } from "../../utils/termLock.js";
 import type {
   PutScoreSheetInput,
   ScoreSheetQuery,
+  StudentCountsQuery,
   SubmissionStatusQuery,
   SubmitInput,
 } from "./assessments.schema.js";
@@ -232,4 +233,74 @@ export async function submissionStatus(
     },
   ]);
   return rows;
+}
+
+export async function studentCountsByAssignedClasses(
+  schoolId: string,
+  teacherUserId: string,
+  query: StudentCountsQuery
+) {
+  const assignmentFilter: {
+    schoolId: Types.ObjectId;
+    teacherUserId: Types.ObjectId;
+    subjectId: Types.ObjectId;
+    termId: Types.ObjectId;
+    isActive: boolean;
+    classId?: Types.ObjectId;
+  } = {
+    schoolId: oid(schoolId, "schoolId"),
+    teacherUserId: oid(teacherUserId, "teacherUserId"),
+    subjectId: oid(query.subjectId, "subjectId"),
+    termId: oid(query.termId, "termId"),
+    isActive: true,
+  };
+  if (query.classId) {
+    assignmentFilter.classId = oid(query.classId, "classId");
+  }
+
+  const assignments = await TeachingAssignment.find(assignmentFilter)
+    .populate("classId", "name arm")
+    .sort({ createdAt: -1 });
+
+  if (assignments.length === 0) {
+    throw new AppError(403, "No teaching assignment for this subject/term scope");
+  }
+
+  const classIds = assignments.map((a) => {
+    const classDoc = a.classId as unknown as { _id: Types.ObjectId };
+    return classDoc._id;
+  });
+  const countRows = await Student.aggregate<{ _id: Types.ObjectId; totalStudents: number }>([
+    {
+      $match: {
+        schoolId: oid(schoolId, "schoolId"),
+        classId: { $in: classIds },
+        isActive: true,
+      },
+    },
+    { $group: { _id: "$classId", totalStudents: { $sum: 1 } } },
+  ]);
+  const byClassId = new Map(countRows.map((r) => [r._id.toString(), r.totalStudents]));
+
+  const classes = assignments.map((assignment) => {
+    const classDoc = assignment.classId as unknown as {
+      _id: Types.ObjectId;
+      name?: string;
+      arm?: string;
+    };
+    const classId = classDoc._id.toString();
+    return {
+      classId,
+      className: classDoc.name ?? "",
+      classArm: classDoc.arm ?? null,
+      totalStudents: byClassId.get(classId) ?? 0,
+    };
+  });
+
+  return {
+    subjectId: query.subjectId,
+    termId: query.termId,
+    classes,
+    totalStudents: classes.reduce((sum, row) => sum + row.totalStudents, 0),
+  };
 }

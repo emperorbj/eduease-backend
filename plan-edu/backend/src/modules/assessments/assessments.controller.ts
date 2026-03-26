@@ -5,6 +5,7 @@ import * as assessmentsService from "./assessments.service.js";
 import {
   putScoreSheetSchema,
   scoreSheetQuerySchema,
+  studentCountsQuerySchema,
   submissionSchema,
   submissionStatusQuerySchema,
 } from "./assessments.schema.js";
@@ -90,6 +91,25 @@ export async function submissionStatus(req: Request, res: Response): Promise<voi
       query
     );
     res.json({ subjects: rows });
+  } catch (e) {
+    if (e instanceof ZodError) zodTo400(e);
+    throw e;
+  }
+}
+
+export async function studentCounts(req: Request, res: Response): Promise<void> {
+  const user = requireUser(req);
+  if (user.role !== "SUBJECT_TEACHER") {
+    throw new AppError(403, "Only subject teachers can view student counts");
+  }
+  try {
+    const query = studentCountsQuerySchema.parse(req.query);
+    const result = await assessmentsService.studentCountsByAssignedClasses(
+      user.schoolId,
+      user.id,
+      query
+    );
+    res.json(result);
   } catch (e) {
     if (e instanceof ZodError) zodTo400(e);
     throw e;

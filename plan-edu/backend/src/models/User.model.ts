@@ -22,6 +22,11 @@ const userSchema = new Schema(
       type: Schema.Types.ObjectId,
       default: null,
     },
+    studentId: {
+      type: Schema.Types.ObjectId,
+      ref: "Student",
+      default: null,
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

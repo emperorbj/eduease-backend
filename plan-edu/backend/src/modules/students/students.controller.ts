@@ -2,11 +2,14 @@ import type { Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../../middleware/errorHandler.js";
 import * as studentsService from "./students.service.js";
+import * as authService from "../auth/auth.service.js";
 import {
   createStudentSchema,
   listStudentsQuerySchema,
+  myStudentResultsQuerySchema,
   updateStudentSchema,
 } from "./students.schema.js";
+import { User } from "../../models/User.model.js";
 
 function ensureUser(req: Request) {
   if (!req.user) {
@@ -74,7 +77,51 @@ export async function createStudent(req: Request, res: Response): Promise<void> 
   try {
     const input = createStudentSchema.parse(req.body);
     const row = await studentsService.createStudent(user.schoolId, input);
+
+    // Optional: if credentials are provided, create the login user and link it to this student record.
+    if (input.loginEmail || input.loginPassword) {
+      if (!input.loginEmail || !input.loginPassword) {
+        throw new AppError(400, "Both loginEmail and loginPassword are required when using student login");
+      }
+
+      const existing = await User.findOne({
+        schoolId: user.schoolId,
+        email: input.loginEmail.toLowerCase().trim(),
+      });
+      if (existing) {
+        throw new AppError(409, "A user with this email already exists in this school");
+      }
+
+      const created = await authService.adminCreateUser(user.schoolId, user.id, {
+        email: input.loginEmail,
+        password: input.loginPassword,
+        firstName: input.firstName,
+        lastName: input.lastName,
+        role: "STUDENT",
+      });
+
+      await User.findOneAndUpdate(
+        { _id: created.user.id, schoolId: user.schoolId },
+        { studentId: row._id },
+        { new: true }
+      );
+    }
     res.status(201).json({ student: row });
+  } catch (e) {
+    if (e instanceof ZodError) throwValidation(e);
+    throw e;
+  }
+}
+
+export async function myStudentResults(req: Request, res: Response): Promise<void> {
+  const user = ensureUser(req);
+  if (user.role !== "STUDENT") {
+    throw new AppError(403, "Only students can view their results");
+  }
+  try {
+    const query = myStudentResultsQuerySchema.parse(req.query);
+    const result = await studentsService.getMyStudentResults(user.schoolId, user.id, query);
+    res.json(result);
   } catch (e) {
     if (e instanceof ZodError) throwValidation(e);
     throw e;
@@ -123,4 +170,16 @@ export async function updateStudent(req: Request, res: Response): Promise<void> 
     if (e instanceof ZodError) throwValidation(e);
     throw e;
   }
+}
+
+export async function deleteStudent(req: Request, res: Response): Promise<void> {
+  const user = ensureUser(req);
+  if (user.role !== "SUPER_ADMIN" && user.role !== "ADMIN") {
+    throw new AppError(403, "Only admin roles can delete students");
+  }
+  await studentsService.deleteStudent(
+    user.schoolId,
+    routeParamString(req.params.id, "student id")
+  );
+  res.status(204).send();
 }

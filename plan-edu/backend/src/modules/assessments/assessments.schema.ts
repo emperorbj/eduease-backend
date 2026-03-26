@@ -34,7 +34,14 @@ export const submissionStatusQuerySchema = z.object({
   termId: objectId,
 });
 
+export const studentCountsQuerySchema = z.object({
+  subjectId: objectId,
+  termId: objectId,
+  classId: objectId.optional(),
+});
+
 export type ScoreSheetQuery = z.infer<typeof scoreSheetQuerySchema>;
 export type PutScoreSheetInput = z.infer<typeof putScoreSheetSchema>;
 export type SubmitInput = z.infer<typeof submissionSchema>;
 export type SubmissionStatusQuery = z.infer<typeof submissionStatusQuerySchema>;
+export type StudentCountsQuery = z.infer<typeof studentCountsQuerySchema>;

@@ -303,6 +303,15 @@ export function getOpenApiSpec() {
           responses: { "201": { description: "Created" } },
         },
       },
+      "/api/v1/students/me/results": {
+        get: {
+          tags: ["Students"],
+          summary: "Get the authenticated student's own results for a term",
+          security: bearer,
+          parameters: [{ name: "termId", in: "query", required: true, schema: { type: "string" } }],
+          responses: { "200": { description: "OK" }, "403": { description: "Forbidden" }, "404": { description: "Not found" } },
+        },
+      },
       "/api/v1/students/{id}": {
         get: {
           tags: ["Students"],
@@ -317,6 +326,13 @@ export function getOpenApiSpec() {
           security: bearer,
           parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
           responses: { "200": { description: "OK" } },
+        },
+        delete: {
+          tags: ["Students"],
+          summary: "Delete student (ADMIN / SUPER_ADMIN)",
+          security: bearer,
+          parameters: [{ name: "id", in: "path", required: true, schema: { type: "string" } }],
+          responses: { "204": { description: "No content" }, "404": { description: "Not found" } },
         },
       },
       "/api/v1/teaching-contexts": {
@@ -344,6 +360,22 @@ export function getOpenApiSpec() {
           summary: "Bulk update scores",
           security: bearer,
           responses: { "200": { description: "OK" }, "409": { description: "Locked term or sheet" } },
+        },
+      },
+      "/api/v1/student-counts": {
+        get: {
+          tags: ["Assessments"],
+          summary: "Student totals for subject teacher assignments",
+          security: bearer,
+          parameters: [
+            { name: "subjectId", in: "query", required: true, schema: { type: "string" } },
+            { name: "termId", in: "query", required: true, schema: { type: "string" } },
+            { name: "classId", in: "query", required: false, schema: { type: "string" } },
+          ],
+          responses: {
+            "200": { description: "OK" },
+            "403": { description: "No assignment or forbidden" },
+          },
         },
       },
       "/api/v1/submissions": {

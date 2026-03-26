@@ -18,3 +18,7 @@ assessmentsRouter.get(
   "/submissions/status",
   asyncHandler(assessmentsController.submissionStatus)
 );
+assessmentsRouter.get(
+  "/student-counts",
+  asyncHandler(assessmentsController.studentCounts)
+);
