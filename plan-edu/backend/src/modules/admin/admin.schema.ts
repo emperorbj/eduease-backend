@@ -2,6 +2,7 @@ import { z } from "zod";
 import { USER_ROLES } from "../../types/roles.js";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
+const departmentEnum = z.enum(["SCIENCE", "ARTS", "COMMERCIAL"]);
 
 export const createSessionSchema = z.object({
   name: z.string().trim().min(3).max(64),
@@ -41,12 +42,16 @@ export const updateClassSchema = z.object({
 export const createSubjectSchema = z.object({
   name: z.string().trim().min(2).max(64),
   code: z.string().trim().min(2).max(16),
+  isCompulsoryForAll: z.boolean().optional(),
+  departmentsApplicable: z.array(departmentEnum).min(1).optional(),
   isActive: z.boolean().optional(),
 });
 
 export const updateSubjectSchema = z.object({
   name: z.string().trim().min(2).max(64).optional(),
   code: z.string().trim().min(2).max(16).optional(),
+  isCompulsoryForAll: z.boolean().optional(),
+  departmentsApplicable: z.array(departmentEnum).min(1).optional(),
   isActive: z.boolean().optional(),
 });
 

@@ -106,7 +106,8 @@ export async function createStudent(req: Request, res: Response): Promise<void> 
         { new: true }
       );
     }
-    res.status(201).json({ student: row });
+    const student = await studentsService.serializeStudentForClient(user.schoolId, row);
+    res.status(201).json({ student });
   } catch (e) {
     if (e instanceof ZodError) throwValidation(e);
     throw e;
@@ -145,7 +146,8 @@ export async function getStudent(req: Request, res: Response): Promise<void> {
     }
   }
 
-  res.json({ student: row });
+  const student = await studentsService.serializeStudentForClient(user.schoolId, row);
+  res.json({ student });
 }
 
 export async function updateStudent(req: Request, res: Response): Promise<void> {
@@ -165,7 +167,8 @@ export async function updateStudent(req: Request, res: Response): Promise<void> 
       routeParamString(req.params.id, "student id"),
       input
     );
-    res.json({ student: row });
+    const student = await studentsService.serializeStudentForClient(user.schoolId, row);
+    res.json({ student });
   } catch (e) {
     if (e instanceof ZodError) throwValidation(e);
     throw e;

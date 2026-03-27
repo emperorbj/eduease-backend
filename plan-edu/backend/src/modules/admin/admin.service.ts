@@ -216,6 +216,12 @@ export async function createSubject(schoolId: string, input: CreateSubjectInput)
       schoolId: toSchoolObjectId(schoolId),
       name: input.name.trim(),
       code: input.code.trim().toUpperCase(),
+      isCompulsoryForAll: input.isCompulsoryForAll ?? false,
+      departmentsApplicable: input.departmentsApplicable ?? [
+        "SCIENCE",
+        "ARTS",
+        "COMMERCIAL",
+      ],
       isActive: input.isActive ?? true,
     });
   } catch (e) {

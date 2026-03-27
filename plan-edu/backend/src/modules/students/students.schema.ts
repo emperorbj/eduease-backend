@@ -1,6 +1,8 @@
 import { z } from "zod";
 
 const objectId = z.string().regex(/^[a-f\d]{24}$/i, "Invalid id");
+const genderEnum = z.enum(["MALE", "FEMALE"]);
+const departmentEnum = z.enum(["SCIENCE", "ARTS", "COMMERCIAL"]);
 
 export const listStudentsQuerySchema = z.object({
   classId: objectId.optional(),
@@ -10,6 +12,8 @@ export const listStudentsQuerySchema = z.object({
 export const createStudentSchema = z.object({
   firstName: z.string().trim().min(1).max(64),
   lastName: z.string().trim().min(1).max(64),
+  gender: genderEnum,
+  department: departmentEnum.optional(),
   admissionNumber: z.string().trim().min(1).max(32),
   classId: objectId,
   /**
@@ -27,6 +31,8 @@ export const myStudentResultsQuerySchema = z.object({
 export const updateStudentSchema = z.object({
   firstName: z.string().trim().min(1).max(64).optional(),
   lastName: z.string().trim().min(1).max(64).optional(),
+  gender: genderEnum.optional(),
+  department: departmentEnum.nullable().optional(),
   admissionNumber: z.string().trim().min(1).max(32).optional(),
   classId: objectId.optional(),
   isActive: z.boolean().optional(),

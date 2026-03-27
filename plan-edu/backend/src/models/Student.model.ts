@@ -17,6 +17,18 @@ const studentSchema = new Schema(
       required: true,
       index: true,
     },
+    gender: {
+      type: String,
+      enum: ["MALE", "FEMALE"],
+      required: true,
+      index: true,
+    },
+    department: {
+      type: String,
+      enum: ["SCIENCE", "ARTS", "COMMERCIAL"],
+      default: null,
+      index: true,
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

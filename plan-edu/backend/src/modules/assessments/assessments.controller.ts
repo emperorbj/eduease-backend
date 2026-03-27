@@ -23,8 +23,8 @@ function zodTo400(e: ZodError): never {
 
 export async function teachingContexts(req: Request, res: Response): Promise<void> {
   const user = requireUser(req);
-  if (user.role !== "SUBJECT_TEACHER") {
-    throw new AppError(403, "Only subject teachers can access teaching contexts");
+  if (user.role !== "SUBJECT_TEACHER" && user.role !== "CLASS_TEACHER") {
+    throw new AppError(403, "Only subject or class teachers can access teaching contexts");
   }
   const rows = await assessmentsService.listTeachingContexts(user.schoolId, user.id);
   res.json({ contexts: rows });
@@ -32,8 +32,8 @@ export async function teachingContexts(req: Request, res: Response): Promise<voi
 
 export async function getScoreSheet(req: Request, res: Response): Promise<void> {
   const user = requireUser(req);
-  if (user.role !== "SUBJECT_TEACHER") {
-    throw new AppError(403, "Only subject teachers can view score sheets");
+  if (user.role !== "SUBJECT_TEACHER" && user.role !== "CLASS_TEACHER") {
+    throw new AppError(403, "Only subject or class teachers can view score sheets");
   }
   try {
     const query = scoreSheetQuerySchema.parse(req.query);
@@ -47,8 +47,8 @@ export async function getScoreSheet(req: Request, res: Response): Promise<void> 
 
 export async function putScoreSheet(req: Request, res: Response): Promise<void> {
   const user = requireUser(req);
-  if (user.role !== "SUBJECT_TEACHER") {
-    throw new AppError(403, "Only subject teachers can update score sheets");
+  if (user.role !== "SUBJECT_TEACHER" && user.role !== "CLASS_TEACHER") {
+    throw new AppError(403, "Only subject or class teachers can update score sheets");
   }
   try {
     const input = putScoreSheetSchema.parse(req.body);
@@ -62,8 +62,8 @@ export async function putScoreSheet(req: Request, res: Response): Promise<void> 
 
 export async function submit(req: Request, res: Response): Promise<void> {
   const user = requireUser(req);
-  if (user.role !== "SUBJECT_TEACHER") {
-    throw new AppError(403, "Only subject teachers can submit results");
+  if (user.role !== "SUBJECT_TEACHER" && user.role !== "CLASS_TEACHER") {
+    throw new AppError(403, "Only subject or class teachers can submit results");
   }
   try {
     const input = submissionSchema.parse(req.body);
@@ -99,8 +99,8 @@ export async function submissionStatus(req: Request, res: Response): Promise<voi
 
 export async function studentCounts(req: Request, res: Response): Promise<void> {
   const user = requireUser(req);
-  if (user.role !== "SUBJECT_TEACHER") {
-    throw new AppError(403, "Only subject teachers can view student counts");
+  if (user.role !== "SUBJECT_TEACHER" && user.role !== "CLASS_TEACHER") {
+    throw new AppError(403, "Only subject or class teachers can view student counts");
   }
   try {
     const query = studentCountsQuerySchema.parse(req.query);

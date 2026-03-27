@@ -20,6 +20,40 @@ function isMongoDuplicateKey(e: unknown): boolean {
   return typeof e === "object" && e !== null && "code" in e && (e as { code: number }).code === 11000;
 }
 
+type StudentLike = {
+  _id: Types.ObjectId;
+  firstName: string;
+  lastName: string;
+  gender: "MALE" | "FEMALE";
+  department?: "SCIENCE" | "ARTS" | "COMMERCIAL" | null;
+  admissionNumber: string;
+  classId: Types.ObjectId;
+  isActive?: boolean | null;
+};
+
+/** Public student shape for API responses (includes portal link flag). */
+export async function serializeStudentForClient(schoolId: string, row: StudentLike) {
+  const linked = await User.findOne({
+    schoolId: toObjectId(schoolId, "schoolId"),
+    studentId: row._id,
+    role: "STUDENT",
+  })
+    .select("_id")
+    .lean();
+
+  return {
+    _id: row._id.toString(),
+    firstName: row.firstName,
+    lastName: row.lastName,
+    gender: row.gender,
+    department: row.department ?? null,
+    admissionNumber: row.admissionNumber,
+    classId: row.classId.toString(),
+    isActive: row.isActive ?? true,
+    hasPortalAccount: Boolean(linked),
+  };
+}
+
 export async function listStudents(schoolId: string, query: ListStudentsQuery) {
   const filter: FilterQuery<StudentDoc> = {
     schoolId: toObjectId(schoolId, "schoolId"),
@@ -34,7 +68,35 @@ export async function listStudents(schoolId: string, query: ListStudentsQuery) {
       { admissionNumber: { $regex: query.q, $options: "i" } },
     ];
   }
-  return Student.find(filter).sort({ lastName: 1, firstName: 1 });
+
+  const rows = await Student.find(filter).sort({ lastName: 1, firstName: 1 }).lean();
+  if (rows.length === 0) {
+    return [];
+  }
+
+  const schoolOid = toObjectId(schoolId, "schoolId");
+  const studentObjectIds = rows.map((r) => r._id);
+  const linkedUsers = await User.find({
+    schoolId: schoolOid,
+    studentId: { $in: studentObjectIds },
+    role: "STUDENT",
+  })
+    .select("studentId")
+    .lean();
+
+  const withPortal = new Set(linkedUsers.map((u) => String(u.studentId)));
+
+  return rows.map((r) => ({
+    _id: String(r._id),
+    firstName: r.firstName,
+    lastName: r.lastName,
+    gender: r.gender,
+    department: r.department ?? null,
+    admissionNumber: r.admissionNumber,
+    classId: String(r.classId),
+    isActive: r.isActive ?? true,
+    hasPortalAccount: withPortal.has(String(r._id)),
+  }));
 }
 
 export async function createStudent(schoolId: string, input: CreateStudentInput) {
@@ -44,6 +106,8 @@ export async function createStudent(schoolId: string, input: CreateStudentInput)
       schoolId: toObjectId(schoolId, "schoolId"),
       firstName: studentFields.firstName.trim(),
       lastName: studentFields.lastName.trim(),
+      gender: studentFields.gender,
+      department: studentFields.department ?? null,
       admissionNumber: studentFields.admissionNumber.trim(),
       classId: toObjectId(studentFields.classId, "classId"),
     });
@@ -72,7 +136,7 @@ export async function getMyStudentResults(
   const student = await Student.findOne({
     _id: toObjectId(String(user.studentId), "studentId"),
     schoolId: toObjectId(schoolId, "schoolId"),
-  }).select("firstName lastName admissionNumber classId");
+  }).select("firstName lastName gender department admissionNumber classId");
 
   if (!student) {
     throw new AppError(404, "Student record not found");
@@ -116,6 +180,8 @@ export async function getMyStudentResults(
     student: {
       firstName: student.firstName,
       lastName: student.lastName,
+      gender: student.gender,
+      department: student.department ?? null,
       admissionNumber: student.admissionNumber,
       studentId: student._id.toString(),
     },

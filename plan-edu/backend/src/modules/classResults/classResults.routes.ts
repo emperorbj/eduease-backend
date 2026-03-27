@@ -23,3 +23,19 @@ classResultsRouter.patch(
   "/:classId/:termId/comments",
   asyncHandler(classResultsController.comments)
 );
+classResultsRouter.get(
+  "/:classId/:termId/subjects/:subjectId/positions",
+  asyncHandler(classResultsController.subjectPositions)
+);
+classResultsRouter.get(
+  "/:classId/:termId/report-cards/:studentId",
+  asyncHandler(classResultsController.reportCard)
+);
+classResultsRouter.get(
+  "/:classId/:termId/report-cards",
+  asyncHandler(classResultsController.reportCards)
+);
+classResultsRouter.get(
+  "/:classId/:termId/report-cards/:studentId/pdf",
+  asyncHandler(classResultsController.reportCardPdf)
+);

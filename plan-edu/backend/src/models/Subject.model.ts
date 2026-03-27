@@ -10,6 +10,16 @@ const subjectSchema = new Schema(
     },
     name: { type: String, required: true, trim: true },
     code: { type: String, required: true, trim: true, uppercase: true },
+    isCompulsoryForAll: { type: Boolean, default: false },
+    departmentsApplicable: {
+      type: [
+        {
+          type: String,
+          enum: ["SCIENCE", "ARTS", "COMMERCIAL"],
+        },
+      ],
+      default: ["SCIENCE", "ARTS", "COMMERCIAL"],
+    },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }

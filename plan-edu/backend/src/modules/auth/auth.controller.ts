@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { ZodError } from "zod";
 import { AppError } from "../../middleware/errorHandler.js";
 import { User } from "../../models/User.model.js";
+import { TeachingAssignment } from "../../models/TeachingAssignment.model.js";
 import {
   adminCreateUserSchema,
   bootstrapRegisterSchema,
@@ -68,12 +69,25 @@ export async function me(req: Request, res: Response): Promise<void> {
   if (!req.user) {
     throw new AppError(401, "Authentication required");
   }
+  const activeTeachingAssignments = await TeachingAssignment.countDocuments({
+    schoolId: req.user.schoolId,
+    teacherUserId: req.user.id,
+    isActive: true,
+  });
+  const canUseAssessments =
+    req.user.role === "SUBJECT_TEACHER" ||
+    req.user.role === "ADMIN" ||
+    req.user.role === "SUPER_ADMIN" ||
+    activeTeachingAssignments > 0;
   res.json({
     user: req.user,
     permissions: {
       schoolId: req.user.schoolId,
       role: req.user.role,
       isClassTeacher: req.user.role === "CLASS_TEACHER",
+      hasTeachingAssignments: activeTeachingAssignments > 0,
+      activeTeachingAssignments,
+      canUseAssessments,
       canViewAllClasses:
         req.user.role === "PRINCIPAL" ||
         req.user.role === "HEADTEACHER" ||
